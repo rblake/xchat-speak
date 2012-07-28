@@ -9,6 +9,7 @@ import atexit
 import signal
 import xchat
 import string
+import re
 
 class festival:
     "Festival object"
@@ -68,7 +69,7 @@ class festival:
     def say(self,text):
         "Speak string 'text'."
         self.open()
-        self.sock.send('(SayText "%s")'%text)
+        self.sock.send('(SayText "%s")' % re.sub(r'"',r'\"',text))
         # this makes xchat block while speaking. bad.
         #self._checkresp()
 
@@ -1245,69 +1246,88 @@ class wordcleanser:
             'yuo' : 'you',
             'yuor' : 'your',}
 
-    def clean(self,words):
+        self.substitutions={
+            }
+
+    def clean(self,message):
+        for (regex, result) in self.substitutions.items():
+            message = re.sub(regex, result, message)
+
+        words = message.split()
         cleaned = []
         for word in words:
-            if word in self.abbr:
-                word = self.abbr[word]
-            if word in self.spell:
-                word = self.spell[word]
+            lower_word = word.lower()
+            if lower_word in self.abbr:
+                word = self.abbr[lower_word]
+            if lower_word in self.spell:
+                word = self.spell[lower_word]
             cleaned.append(word)
-        return cleaned
+        return " ".join(cleaned)
+
+def unscramble_nick(speaker):
+    speakable_speaker = re.sub(r'^:(.*?)!.*', r'\1',speaker)
+    return speakable_speaker
 
 class xchat_speak:
     def __init__(self):
         # fix find a way to remove use of globals
-        self.XCHAT_FESTIVAL=festival()
-        self.SPEAK_CHANNEL=False
-        self.SPEAK=False
+        self.festival=festival()
+        self.cleanser = wordcleanser()
+        self.vocalized_channels = set()
+        self.vocalized_nicks = set()
+        self.muted_nicks_in_channels = set()
 
-        xchat.hook_command("speechon", self.speechon, help="/speechon Turn on speech")
-        xchat.hook_command("speechoff", self.speechoff, help="/speechoff Turn off speech")
-        xchat.hook_command("channelon", self.channelon, help="/channelon Speak current channel only")
-        xchat.hook_command("channeloff", self.channeloff, help="/channeloff Speak all channels")
+        xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
+        xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
         xchat.hook_server("PRIVMSG", self.chat_hook)
-        xchat.command('speechon')
 
-    def speechon(self, word, word_eol, userdata):
-        "/speechon hook"
-        self.SPEAK=True
-        self.XCHAT_FESTIVAL.say('speech activated')
-        xchat.prnt("speech activated")
+    def unmute(self, word, word_eol, userdata):
+        "/unmute [speaker] Turn on speech for this window or a specific speaker in this channel"
+        target = xchat.get_info('channel')
+        if (len(word) == 1):
+            if re.match('#',target):
+                self.vocalized_channels.add(target)
+                xchat.prnt('Speaking for channel '+target)
+            else:
+                self.vocalized_nicks.add(target)
+                xchat.prnt('Speaking user '+target)
+        else:
+            for speaker in word[1:]:
+                self.muted_nicks_in_channels.discard(speaker)
+                xchat.prnt('Unsilencing user '+speaker+' in all channels')
         return xchat.EAT_ALL
 
-    def speechoff(self, word, word_eol, userdata):
-        "/speechoff hook"
-        self.SPEAK=False
-        self.XCHAT_FESTIVAL.say('speech disabled')
-        xchat.prnt("speech disabled")
-        return xchat.EAT_ALL
-
-    def channelon(self, word, word_eol, userdata):
-        "/channelon hook"
-        self.SPEAK_CHANNEL = xchat.get_info('channel')
-        self.XCHAT_FESTIVAL.say('speaking %s channel only' % self.SPEAK_CHANNEL)
-        xchat.prnt("speaking %s channel only" % self.SPEAK_CHANNEL)
-        return xchat.EAT_ALL
-
-    def channeloff(self, word, word_eol, userdata):
-        "/channeloff hook"
-        self.SPEAK_CHANNEL=False
-        self.XCHAT_FESTIVAL.say('speaking all channels')
-        xchat.prnt("speaking all channels")
+    def mute(self, word, word_eol, userdata):
+        "/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel"
+        target = xchat.get_info('channel')
+        if (len(word) == 1):
+            if re.match('#',target):
+                self.vocalized_channels.discard(target)
+                xchat.prnt('Muting channel '+target)
+            else:
+                self.vocalized_nicks.discard(target)
+                xchat.prnt('Muting user '+target)
+        else:
+            for speaker in word[1:]:
+                self.muted_nicks_in_channels.add(speaker)
+                xchat.prnt('Silencing user '+speaker+' in all channels')
         return xchat.EAT_ALL
 
     def chat_hook(self, word, word_eol, userdata):
-        #xchat.prnt("This is word: " + `word`)
-        #xchat.prnt("This is word_eol: " + `word_eol`)
-        words = wordcleanser().clean(word[3:])
-        #xchat.prnt("This is words: " + `words`)
-        if self.SPEAK:
-            if self.SPEAK_CHANNEL:
-                if self.SPEAK_CHANNEL == word[2]:
-                    self.XCHAT_FESTIVAL.say(' '.join(words))
-                return xchat.EAT_NONE
-            self.XCHAT_FESTIVAL.say(' '.join(words))
+        speaker = unscramble_nick(word[0])
+        target = word[2]
+        is_private_message = target[0] != '#'
+        if ((is_private_message and speaker in self.vocalized_nicks)
+            or
+            (not is_private_message 
+             and target in self.vocalized_channels
+             and speaker not in self.muted_nicks_in_channels
+             )):
+            message = word_eol[3]
+            message = re.sub(r'^:(.)ACTION',r':\1'+speaker,message)
+            message = self.cleanser.clean(message)
+            
+            self.festival.say(message)
         return xchat.EAT_NONE
 
 
