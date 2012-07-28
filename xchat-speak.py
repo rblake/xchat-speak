@@ -1250,9 +1250,6 @@ class wordcleanser:
             }
 
     def clean(self,message):
-        for (regex, result) in self.substitutions.items():
-            message = re.sub(regex, result, message)
-
         words = message.split()
         cleaned = []
         for word in words:
@@ -1262,7 +1259,12 @@ class wordcleanser:
             if lower_word in self.spell:
                 word = self.spell[lower_word]
             cleaned.append(word)
-        return " ".join(cleaned)
+        message = " ".join(cleaned)
+
+        for (regex, result) in self.substitutions.items():
+            message = re.sub(regex, result, message)
+
+        return message
 
 def unscramble_nick(speaker):
     speakable_speaker = re.sub(r'^:(.*?)!.*', r'\1',speaker)
