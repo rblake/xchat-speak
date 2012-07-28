@@ -1255,63 +1255,63 @@ class wordcleanser:
             cleaned.append(word)
         return cleaned
 
-def speechon(word, word_eol, userdata):
-    "/speechon hook"
-    global SPEAK
-    SPEAK=True
-    XCHAT_FESTIVAL.say('speech activated')
-    xchat.prnt("speech activated")
-    return xchat.EAT_ALL
+class xchat_speak:
+    def __init__(self):
+        # fix find a way to remove use of globals
+        self.XCHAT_FESTIVAL=festival()
+        self.SPEAK_CHANNEL=False
+        self.SPEAK=False
 
-def speechoff(word, word_eol, userdata):
-    "/speechoff hook"
-    global SPEAK
-    SPEAK=False
-    XCHAT_FESTIVAL.say('speech disabled')
-    xchat.prnt("speech disabled")
-    return xchat.EAT_ALL
+        xchat.hook_command("speechon", self.speechon, help="/speechon Turn on speech")
+        xchat.hook_command("speechoff", self.speechoff, help="/speechoff Turn off speech")
+        xchat.hook_command("channelon", self.channelon, help="/channelon Speak current channel only")
+        xchat.hook_command("channeloff", self.channeloff, help="/channeloff Speak all channels")
+        xchat.hook_server("PRIVMSG", self.chat_hook)
+        xchat.command('speechon')
 
-def channelon(word, word_eol, userdata):
-    "/channelon hook"
-    global SPEAK_CHANNEL
-    SPEAK_CHANNEL = xchat.get_info('channel')
-    XCHAT_FESTIVAL.say('speaking %s channel only' % SPEAK_CHANNEL)
-    xchat.prnt("speaking %s channel only" % SPEAK_CHANNEL)
-    return xchat.EAT_ALL
+    def speechon(self, word, word_eol, userdata):
+        "/speechon hook"
+        self.SPEAK=True
+        self.XCHAT_FESTIVAL.say('speech activated')
+        xchat.prnt("speech activated")
+        return xchat.EAT_ALL
 
-def channeloff(word, word_eol, userdata):
-    "/channeloff hook"
-    global SPEAK_CHANNEL
-    SPEAK_CHANNEL=False
-    XCHAT_FESTIVAL.say('speaking all channels')
-    xchat.prnt("speaking all channels")
-    return xchat.EAT_ALL
+    def speechoff(self, word, word_eol, userdata):
+        "/speechoff hook"
+        self.SPEAK=False
+        self.XCHAT_FESTIVAL.say('speech disabled')
+        xchat.prnt("speech disabled")
+        return xchat.EAT_ALL
 
-def chat_hook(word, word_eol, userdata):
-    #xchat.prnt("This is word: " + `word`)
-    #xchat.prnt("This is word_eol: " + `word_eol`)
-    words = wordcleanser().clean(word[3:])
-    #xchat.prnt("This is words: " + `words`)
-    if SPEAK:
-        if SPEAK_CHANNEL:
-            if SPEAK_CHANNEL == word[2]:
-                XCHAT_FESTIVAL.say(' '.join(words))
-            return xchat.EAT_NONE
-        XCHAT_FESTIVAL.say(' '.join(words))
-    return xchat.EAT_NONE
+    def channelon(self, word, word_eol, userdata):
+        "/channelon hook"
+        self.SPEAK_CHANNEL = xchat.get_info('channel')
+        self.XCHAT_FESTIVAL.say('speaking %s channel only' % self.SPEAK_CHANNEL)
+        xchat.prnt("speaking %s channel only" % self.SPEAK_CHANNEL)
+        return xchat.EAT_ALL
 
-# fix find a way to remove use of globals
-global XCHAT_FESTIVAL
-XCHAT_FESTIVAL=festival()
-global SPEAK_CHANNEL
-SPEAK_CHANNEL=False
+    def channeloff(self, word, word_eol, userdata):
+        "/channeloff hook"
+        self.SPEAK_CHANNEL=False
+        self.XCHAT_FESTIVAL.say('speaking all channels')
+        xchat.prnt("speaking all channels")
+        return xchat.EAT_ALL
 
-xchat.hook_command("speechon", speechon, help="/speechon Turn on speech")
-xchat.hook_command("speechoff", speechoff, help="/speechoff Turn off speech")
-xchat.hook_command("channelon", channelon, help="/channelon Speak current channel only")
-xchat.hook_command("channeloff", channeloff, help="/channeloff Speak all channels")
-xchat.hook_server("PRIVMSG", chat_hook)
-xchat.command('speechon')
+    def chat_hook(self, word, word_eol, userdata):
+        #xchat.prnt("This is word: " + `word`)
+        #xchat.prnt("This is word_eol: " + `word_eol`)
+        words = wordcleanser().clean(word[3:])
+        #xchat.prnt("This is words: " + `words`)
+        if self.SPEAK:
+            if self.SPEAK_CHANNEL:
+                if self.SPEAK_CHANNEL == word[2]:
+                    self.XCHAT_FESTIVAL.say(' '.join(words))
+                return xchat.EAT_NONE
+            self.XCHAT_FESTIVAL.say(' '.join(words))
+        return xchat.EAT_NONE
+
+
+x = xchat_speak()
 
 # /load xchat-speak.py
 # /unload xchat-speak.py
