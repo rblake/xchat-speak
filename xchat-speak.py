@@ -139,6 +139,7 @@ class wordcleanser:
         'aamof' : 'as a matter of fact',
         'ad' : 'add',
         'adn' : 'any day now',
+        'afaict' : 'as far as i can tell',
         'afaik' : 'as far as i know',
         'afair' : 'as far as i remember',
         'afj' : 'april fool\'s joke',
