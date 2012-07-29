@@ -10,10 +10,8 @@ if two folks post at the same time, both are spoken concurrently.
 
 COMMANDS IN XCHAT
 
-/speechon = turn speech on
-/speechoff = turn speech off
-/channelon = speak the current channel only
-/channeloff = speak all channels
+/mute [speaker] Stop speaking everything in a channel or private message, or mute a specific speaker in all channels.
+/unmute [speaker] Start speaking everything in a channel or private message, or unmute a specific speaker in all channels.
 
 BUGS
 - had lots of aplay processes build up at start once, one for each message
