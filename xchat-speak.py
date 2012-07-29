@@ -122,27 +122,32 @@ class festival:
     def _kill_server(self):
         os.kill(self.festival_pid,signal.SIGTERM)
 
-class wordcleanser:
+
+def unscramble_nick(speaker):
+    speakable_speaker = re.sub(r'^:(.*?)!.*', r'\1',speaker)
+    return speakable_speaker
+
+class xchat_speak:
+    def __del__(self):
+        self.pack()
+
     def __init__(self):
+        # fix find a way to remove use of globals
+        self.festival=festival()
+        self.vocalized_channels = set()
+        self.vocalized_nicks = set()
+        self.muted_nicks_in_channels = set()
+
         self.unpack()
         self.substitutions={
             }
 
-    def __del__(self):
-        self.pack()
+        xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
+        xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
+        xchat.hook_server("PRIVMSG", self.chat_hook)
 
     def pickle_database(self):
         return os.path.join(xchat.get_info("xchatdir"),"pronounciation_database.pickle")
-
-    def pack(self):
-        p = pickle.Pickler(open(self.pickle_database(),"w"))
-        p.dump(self.abbr)
-        p.dump(self.spell)
-
-    def unpack(self):
-        p = pickle.UnPickler(open(self.pickle_database(),"r"))
-        self.abbr = p.load()
-        self.spell = p.load()
 
     def clean(self,message):
         words = message.split()
@@ -161,22 +166,15 @@ class wordcleanser:
 
         return message
 
-def unscramble_nick(speaker):
-    speakable_speaker = re.sub(r'^:(.*?)!.*', r'\1',speaker)
-    return speakable_speaker
+    def pack(self):
+        p = pickle.Pickler(open(self.pickle_database(),"w"))
+        p.dump(self.abbr)
+        p.dump(self.spell)
 
-class xchat_speak:
-    def __init__(self):
-        # fix find a way to remove use of globals
-        self.festival=festival()
-        self.cleanser = wordcleanser()
-        self.vocalized_channels = set()
-        self.vocalized_nicks = set()
-        self.muted_nicks_in_channels = set()
-
-        xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
-        xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
-        xchat.hook_server("PRIVMSG", self.chat_hook)
+    def unpack(self):
+        p = pickle.UnPickler(open(self.pickle_database(),"r"))
+        self.abbr = p.load()
+        self.spell = p.load()
 
     def unmute(self, word, word_eol, userdata):
         "/unmute [speaker] Turn on speech for this window or a specific speaker in this channel"
@@ -222,7 +220,7 @@ class xchat_speak:
              )):
             message = word_eol[3]
             message = re.sub(r'^:(.)ACTION',r':\1'+speaker,message)
-            message = self.cleanser.clean(message)
+            message = self.clean(message)
             
             self.festival.say(message)
         return xchat.EAT_NONE
