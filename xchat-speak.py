@@ -136,10 +136,12 @@ class xchat_speak:
         self.festival=festival()
         self.vocalized_channels = set()
         self.vocalized_nicks = set()
-        self.muted_nicks_in_channels = set()
+        self.muted_nicks_in_channels = set(["Eklem","Zhao"])
 
         self.unpack()
         self.substitutions={
+            r'^!r .*$' : r'',
+            r'[\]\[<>{}]' : r'',
             }
 
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
