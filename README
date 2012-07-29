@@ -2,10 +2,8 @@
 
 INSTALLATION
 
-- copy xchat-speak.py to ~/.xchat2
+- copy xchat-speak.py and pronouciation_database.pickle to ~/.xchat2
 
-if festival is working, when xchat starts, it should say "speech activated".
-it should speek all PRIVMSGs on all channels out loud.
 if two folks post at the same time, both are spoken concurrently.
 
 COMMANDS IN XCHAT
