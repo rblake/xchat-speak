@@ -145,6 +145,7 @@ class xchat_speak:
 
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
         xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
+        xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronounciation]' - Fix pronounciation for a word, or delete the pronounciation if it exists.")
         xchat.hook_server("PRIVMSG", self.chat_hook)
 
     def pickle_database(self):
@@ -176,6 +177,21 @@ class xchat_speak:
         p = pickle.Unpickler(open(self.pickle_database(),"r"))
         self.abbr = p.load()
         self.spell = p.load()
+
+    def pronounce(self, word, word_eol, userdata):
+        if (len(word) <= 1):
+            return
+        mispronounced_word = word[1]
+        new_pronounciation = word_eol[1]
+        if self.abbr.has_key(mispronounced_word):
+            del self.abbr[mispronounced_word]
+        if not new_pronounciation:
+            if self.spell.has_key(mispronounced_word):
+                del self.spell[mispronounced_word]
+            print mispronounced_word+" pronounciation cleared."
+        else:
+            self.spell[mispronounced_word] = new_pronounciation
+            print mispronounced_word+" pronounciation stored."
 
     def unmute(self, word, word_eol, userdata):
         "/unmute [speaker] Turn on speech for this window or a specific speaker in this channel"
