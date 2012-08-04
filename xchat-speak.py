@@ -143,6 +143,15 @@ class xchat_speak:
         self.muted_nicks_in_channels = set()
 
         self.actors = {
+            "caleb" : "(voice_kal_diphone)",
+            "ken" : "(voice_ked_diphone)",
+            "randal" : "(voice_rab_diphone)",
+            "alan" : "(voice_cmu_us_awb_arctic_clunits)",
+            "brett" : "(voice_cmu_us_bdl_arctic_clunits)",
+            "carmen" : "(voice_cmu_us_clb_arctic_clunits)",
+            "jerry" : "(voice_cmu_us_jmk_arctic_clunits)",
+            "roger" : "(voice_cmu_us_rms_arctic_clunits)",
+            "sarah" : "(voice_cmu_us_slt_arctic_clunits)",
             }
 
         self.unpack()
@@ -261,7 +270,7 @@ class xchat_speak:
             message = re.sub(r'^:(.)ACTION',r':\1'+speaker,message)
             message = self.clean(message)
             
-            actor = None
+            actor = self.actors["caleb"]
             if self.roles.has_key(speaker):
                 actor = self.roles[speaker]
             self.festival.say(message,actor)
