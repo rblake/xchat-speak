@@ -10,6 +10,7 @@ import signal
 import xchat
 import string
 import re
+import pickle
 
 class festival:
     "Festival object"
@@ -172,7 +173,7 @@ class xchat_speak:
         p.dump(self.spell)
 
     def unpack(self):
-        p = pickle.UnPickler(open(self.pickle_database(),"r"))
+        p = pickle.Unpickler(open(self.pickle_database(),"r"))
         self.abbr = p.load()
         self.spell = p.load()
 
