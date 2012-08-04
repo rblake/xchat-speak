@@ -16,8 +16,9 @@ class festival:
     "Festival object"
 
     def __init__(self):
-        self.sock = self.open()
         self.festival_pid = 0
+        self.sock = self.open()
+        self.block(False)
 
     def _checkresp(self):
         if self.sock.recv(256)=='ER\n':
@@ -67,9 +68,9 @@ class festival:
             self.set_param('Audio_Required_Format',format)
         self.set_param_str('Audio_Command',command)
 
-    def say(self,text):
+    def say(self,text,actor=None):
         "Speak string 'text'."
-        self.open()
+        if actor: self.sock.send(actor)
         self.sock.send('(SayText "%s")' % re.sub(r'"',r'\"',text))
         # this makes xchat block while speaking. bad.
         #self._checkresp()
@@ -121,7 +122,9 @@ class festival:
         return sock
 
     def _kill_server(self):
-        os.kill(self.festival_pid,signal.SIGTERM)
+        if (self.festival_pid):
+            os.kill(self.festival_pid,signal.SIGTERM)
+            self.festival_pid = 0
 
 
 def unscramble_nick(speaker):
@@ -139,6 +142,18 @@ class xchat_speak:
         self.vocalized_nicks = set()
         self.muted_nicks_in_channels = set(["Eklem","Zhao"])
 
+        self.actors = {
+            "caleb" : "(voice_kal_diphone)",
+            "ken" : "(voice_ked_diphone)",
+            "randal" : "(voice_rab_diphone)",
+            "alan" : "(voice_cmu_us_awb_arctic_clunits)",
+            "brett" : "(voice_cmu_us_bdl_arctic_clunits)",
+            "carmen" : "(voice_cmu_us_clb_arctic_clunits)",
+            "jerry" : "(voice_cmu_us_jmk_arctic_clunits)",
+            "roger" : "(voice_cmu_us_rms_arctic_clunits)",
+            "sarah" : "(voice_cmu_us_slt_arctic_clunits)",
+            }
+
         self.unpack()
         self.substitutions={
             r'^!r .*$' : r'',
@@ -148,18 +163,22 @@ class xchat_speak:
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
         xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
         xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronounciation]' - Fix pronounciation for a word, or delete the pronounciation if it exists.")
+        xchat.hook_command("cast", self.cast, help="'/cast nick [actor]' cast an actor as a particular nick, or clear that casting.")
         xchat.hook_server("PRIVMSG", self.chat_hook)
 
     def pickle_database(self):
         return os.path.join(xchat.get_info("xchatdir"),"pronounciation_database.pickle")
 
     def clean(self,message):
+        bad_chars = ( "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
+                     +"\x10\x11\x12\x13\x14\x15\x16\x17\x18\x19\x1A\x1B\x1C\x1D\x1E\x1F"
+                     )
+        message = message.translate(None, bad_chars)
+
         words = message.split()
         cleaned = []
         for word in words:
             lower_word = word.lower()
-            if lower_word in self.abbr:
-                word = self.abbr[lower_word]
             if lower_word in self.spell:
                 word = self.spell[lower_word]
             cleaned.append(word)
@@ -172,28 +191,28 @@ class xchat_speak:
 
     def pack(self):
         p = pickle.Pickler(open(self.pickle_database(),"w"))
-        p.dump(self.abbr)
         p.dump(self.spell)
+        p.dump(self.roles)
 
     def unpack(self):
         p = pickle.Unpickler(open(self.pickle_database(),"r"))
-        self.abbr = p.load()
         self.spell = p.load()
+        self.roles = p.load()
 
     def pronounce(self, word, word_eol, userdata):
+        "'/pronounce word [pronounciation]' - Fix pronounciation for a word, or delete the pronounciation if it exists."
         if (len(word) <= 1):
-            return
+            return xchat.EAT_ALL
         mispronounced_word = word[1]
-        new_pronounciation = word_eol[1]
-        if self.abbr.has_key(mispronounced_word):
-            del self.abbr[mispronounced_word]
+        new_pronounciation = " ".join(word[2:])
         if not new_pronounciation:
             if self.spell.has_key(mispronounced_word):
                 del self.spell[mispronounced_word]
             print mispronounced_word+" pronounciation cleared."
         else:
             self.spell[mispronounced_word] = new_pronounciation
-            print mispronounced_word+" pronounciation stored."
+            print "pronounciation stored: "+mispronounced_word+" ==> "+new_pronounciation
+        return xchat.EAT_ALL
 
     def unmute(self, word, word_eol, userdata):
         "/unmute [speaker] Turn on speech for this window or a specific speaker in this channel"
@@ -227,6 +246,23 @@ class xchat_speak:
                 xchat.prnt('Silencing user '+speaker+' in all channels')
         return xchat.EAT_ALL
 
+    def cast(self, word, word_eol, userdata):
+        "'/cast nick [actor]' cast an actor as a particular nick, or clear that casting."
+        if len(word) >= 2:
+            nick = word[1]
+            if len(word) == 2:
+                if self.roles.has_key(nick):
+                    del self.roles[nick]
+                print "Clearing casting of "+nick
+            else:
+                actor = word[2]
+                if self.actors.has_key(actor):
+                    self.roles[nick] = self.actors[actor]
+                    print "Casting "+nick+" as "+actor
+                else:
+                    print "Unrecognized actor: "+actor
+        return xchat.EAT_ALL
+
     def chat_hook(self, word, word_eol, userdata):
         speaker = unscramble_nick(word[0])
         target = word[2]
@@ -241,11 +277,19 @@ class xchat_speak:
             message = re.sub(r'^:(.)ACTION',r':\1'+speaker,message)
             message = self.clean(message)
             
-            self.festival.say(message)
+            actor = self.actors["caleb"]
+            if self.roles.has_key(speaker):
+                actor = self.roles[speaker]
+            self.festival.say(message,actor)
         return xchat.EAT_NONE
 
 
+def _unload(*args):
+    global x
+    del x
+
 x = xchat_speak()
+xchat.hook_unload(_unload)
 
 # /load xchat-speak.py
 # /unload xchat-speak.py
