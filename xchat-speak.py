@@ -16,8 +16,9 @@ class festival:
     "Festival object"
 
     def __init__(self):
-        self.sock = self.open()
         self.festival_pid = 0
+        self.sock = self.open()
+        self.block(False)
 
     def _checkresp(self):
         if self.sock.recv(256)=='ER\n':
@@ -69,7 +70,6 @@ class festival:
 
     def say(self,text):
         "Speak string 'text'."
-        self.open()
         self.sock.send('(SayText "%s")' % re.sub(r'"',r'\"',text))
         # this makes xchat block while speaking. bad.
         #self._checkresp()
@@ -121,7 +121,9 @@ class festival:
         return sock
 
     def _kill_server(self):
-        os.kill(self.festival_pid,signal.SIGTERM)
+        if (self.festival_pid):
+            os.kill(self.festival_pid,signal.SIGTERM)
+            self.festival_pid = 0
 
 
 def unscramble_nick(speaker):
