@@ -180,7 +180,7 @@ class xchat_speak:
         if (len(word) <= 1):
             return
         mispronounced_word = word[1]
-        new_pronounciation = word_eol[1]
+        new_pronounciation = " ".join(word[2:])
         if not new_pronounciation:
             if self.spell.has_key(mispronounced_word):
                 del self.spell[mispronounced_word]
