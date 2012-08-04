@@ -158,8 +158,6 @@ class xchat_speak:
         cleaned = []
         for word in words:
             lower_word = word.lower()
-            if lower_word in self.abbr:
-                word = self.abbr[lower_word]
             if lower_word in self.spell:
                 word = self.spell[lower_word]
             cleaned.append(word)
@@ -172,12 +170,10 @@ class xchat_speak:
 
     def pack(self):
         p = pickle.Pickler(open(self.pickle_database(),"w"))
-        p.dump(self.abbr)
         p.dump(self.spell)
 
     def unpack(self):
         p = pickle.Unpickler(open(self.pickle_database(),"r"))
-        self.abbr = p.load()
         self.spell = p.load()
 
     def pronounce(self, word, word_eol, userdata):
@@ -185,15 +181,13 @@ class xchat_speak:
             return
         mispronounced_word = word[1]
         new_pronounciation = word_eol[1]
-        if self.abbr.has_key(mispronounced_word):
-            del self.abbr[mispronounced_word]
         if not new_pronounciation:
             if self.spell.has_key(mispronounced_word):
                 del self.spell[mispronounced_word]
             print mispronounced_word+" pronounciation cleared."
         else:
             self.spell[mispronounced_word] = new_pronounciation
-            print mispronounced_word+" pronounciation stored."
+            print "pronounciation stored: "+mispronounced_word+" ==> "+new_pronounciation
 
     def unmute(self, word, word_eol, userdata):
         "/unmute [speaker] Turn on speech for this window or a specific speaker in this channel"
