@@ -239,7 +239,12 @@ class xchat_speak:
         return xchat.EAT_NONE
 
 
+def _unload(*args):
+    global x
+    del x
+
 x = xchat_speak()
+xchat.hook_unload(_unload)
 
 # /load xchat-speak.py
 # /unload xchat-speak.py
