@@ -157,7 +157,9 @@ class xchat_speak:
         self.unpack()
         self.substitutions={
             r'^:' : r'',
+            r'!r init new' : "new initiative. new initiative. new initiative.",
             r'^!r .*$' : r'',
+            r'^!dice.*$' : r'',
             r'[\]\[<>{}]' : r'',
             }
 
