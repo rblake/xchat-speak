@@ -156,11 +156,10 @@ class xchat_speak:
 
         self.unpack()
         self.substitutions={
-            r'^:' : r'',
             r'!r init new' : "new initiative. new initiative. new initiative.",
             r'^!r .*$' : r'',
             r'^!dice.*$' : r'',
-            r'[\]\[<>{}]' : r'',
+            r'[\]\[<>{}]' : r'"',
             }
 
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
@@ -277,7 +276,8 @@ class xchat_speak:
              and speaker not in self.muted_nicks_in_channels
              )):
             message = word_eol[3]
-            message = re.sub(r'^:(.)ACTION',r':\1'+speaker,message)
+            message = re.sub(r'^:',r'',message)
+            message = re.sub(r'^(.)ACTION',speaker,message)
             message = self.clean(message)
             
             actor = self.actors["caleb"]
