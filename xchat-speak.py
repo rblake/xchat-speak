@@ -162,12 +162,12 @@ class xchat_speak:
 
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
         xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
-        xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronounciation]' - Fix pronounciation for a word, or delete the pronounciation if it exists.")
+        xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronunciation]' - Fix pronunciation for a word, or delete the pronunciation if it exists.")
         xchat.hook_command("cast", self.cast, help="'/cast nick [actor]' cast an actor as a particular nick, or clear that casting.")
         xchat.hook_server("PRIVMSG", self.chat_hook)
 
     def pickle_database(self):
-        return os.path.join(xchat.get_info("xchatdir"),"pronounciation_database.pickle")
+        return os.path.join(xchat.get_info("xchatdir"),"pronunciation_database.pickle")
 
     def clean(self,message):
         bad_chars = ( "\x00\x01\x02\x03\x04\x05\x06\x07\x08\x09\x0A\x0B\x0C\x0D\x0E\x0F"
@@ -200,18 +200,18 @@ class xchat_speak:
         self.roles = p.load()
 
     def pronounce(self, word, word_eol, userdata):
-        "'/pronounce word [pronounciation]' - Fix pronounciation for a word, or delete the pronounciation if it exists."
+        "'/pronounce word [pronunciation]' - Fix pronunciation for a word, or delete the pronunciation if it exists."
         if (len(word) <= 1):
             return xchat.EAT_ALL
         mispronounced_word = word[1]
-        new_pronounciation = " ".join(word[2:])
-        if not new_pronounciation:
+        new_pronunciation = " ".join(word[2:])
+        if not new_pronunciation:
             if self.spell.has_key(mispronounced_word):
                 del self.spell[mispronounced_word]
-            print mispronounced_word+" pronounciation cleared."
+            print mispronounced_word+" pronunciation cleared."
         else:
-            self.spell[mispronounced_word] = new_pronounciation
-            print "pronounciation stored: "+mispronounced_word+" ==> "+new_pronounciation
+            self.spell[mispronounced_word] = new_pronunciation
+            print "pronunciation stored: "+mispronounced_word+" ==> "+new_pronunciation
         return xchat.EAT_ALL
 
     def unmute(self, word, word_eol, userdata):
