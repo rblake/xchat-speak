@@ -156,6 +156,7 @@ class xchat_speak:
 
         self.unpack()
         self.substitutions={
+            r'^:' : r'',
             r'^!r .*$' : r'',
             r'[\]\[<>{}]' : r'',
             }
