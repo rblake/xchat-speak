@@ -181,7 +181,9 @@ class xchat_speak:
         cleaned = []
         for word in words:
             lower_word = word.lower()
-            if lower_word in self.spell:
+            no_symbols = re.sub(r"[^A-Za-z0-9_']+",r'',lower_word)
+
+            if lower_word in self.spell or no_symbols in self.spell:
                 word = self.spell[lower_word]
             cleaned.append(word)
         message = " ".join(cleaned)
