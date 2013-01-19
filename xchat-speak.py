@@ -271,6 +271,10 @@ class xchat_speak:
                     print "Casting "+nick+" as "+actor
                 else:
                     print "Unrecognized actor: "+actor
+        else:
+            print "== Valid actors: =="
+            for actor in self.actors.keys():
+                print actor
         return xchat.EAT_ALL
 
     def chat_hook(self, word, word_eol, userdata):
