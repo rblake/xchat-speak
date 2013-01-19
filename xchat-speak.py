@@ -170,6 +170,8 @@ class xchat_speak:
         xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronunciation]' - Fix pronunciation for a word, or delete the pronunciation if it exists.")
         xchat.hook_command("cast", self.cast, help="'/cast nick [actor]' cast an actor as a particular nick, or clear that casting.")
         xchat.hook_server("PRIVMSG", self.chat_hook)
+        xchat.hook_print("Your Message", self.chat_hook)
+        xchat.hook_print("Your Action", self.chat_hook)
 
     def pickle_database(self):
         return os.path.join(xchat.get_info("xchatdir"),"pronunciation_database.pickle")
