@@ -71,7 +71,9 @@ class festival:
     def say(self,text,actor=None):
         "Speak string 'text'."
         if actor: self.sock.send(actor)
-        self.sock.send('(SayText "%s")' % re.sub(r'"',r'\"',text))
+        text = re.sub('\\',r'\\',text)
+        text = re.sub(r'"',r'\"',text)
+        self.sock.send('(SayText "%s")' % text)
         # this makes xchat block while speaking. bad.
         #self._checkresp()
 
