@@ -71,7 +71,7 @@ class festival:
     def say(self,text,actor=None):
         "Speak string 'text'."
         if actor: self.sock.send(actor)
-        text = re.sub('\\',r'\\',text)
+        text = re.sub(r'\\',r'',text)
         text = re.sub(r'"',r'\"',text)
         self.sock.send('(SayText "%s")' % text)
         # this makes xchat block while speaking. bad.
@@ -169,9 +169,10 @@ class xchat_speak:
         xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
         xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronunciation]' - Fix pronunciation for a word, or delete the pronunciation if it exists.")
         xchat.hook_command("cast", self.cast, help="'/cast nick [actor]' cast an actor as a particular nick, or clear that casting.")
-        xchat.hook_server("PRIVMSG", self.chat_hook)
-        xchat.hook_print("Your Message", self.chat_hook)
-        xchat.hook_print("Your Action", self.chat_hook)
+        for message_event in ("Your Message","Channel Message","Channel Msg Hilight","Private Message","Private Message to Dialog"):
+            xchat.hook_print(message_event, self.message_hook)
+        for action_event in ("Your Action","Channel Action","Channel Action Hilight","Private Action","Private Action to Dialog"):
+            xchat.hook_print(action_event, self.action_hook)
 
     def pickle_database(self):
         return os.path.join(xchat.get_info("xchatdir"),"pronunciation_database.pickle")
@@ -279,19 +280,25 @@ class xchat_speak:
                 print actor
         return xchat.EAT_ALL
 
-    def chat_hook(self, word, word_eol, userdata):
+    def message_hook(self, word, word_eol, userdata):
         speaker = unscramble_nick(word[0])
-        target = word[2]
+        message = word[1]
+        return self.check_message(speaker, message)
+
+    def action_hook(self, word, word_eol, userdata):
+        speaker = unscramble_nick(word[0])
+        message = word[0]+" "+word[1]
+        return self.check_message(speaker, message)
+
+    def check_message(self, speaker, message):
+        target = xchat.get_info('channel')
         is_private_message = target[0] != '#'
-        if ((is_private_message and speaker in self.vocalized_nicks)
+        if ((is_private_message and target in self.vocalized_nicks)
             or
             (not is_private_message 
              and target in self.vocalized_channels
              and speaker not in self.muted_nicks_in_channels
              )):
-            message = word_eol[3]
-            message = re.sub(r'^:',r'',message)
-            message = re.sub(r'^(.)ACTION',speaker,message)
             message = self.clean(message)
             
             actor = self.actors["caleb"]
