@@ -160,6 +160,7 @@ class xchat_speak:
             r'^!r .*$' : r'',
             r'^!dice.*$' : r'',
             r'[\]\[<>{}]' : r'"',
+            r'http://[^ ]*' : r'',
             }
 
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
