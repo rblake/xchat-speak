@@ -105,7 +105,7 @@ class festival:
             sock.connect((host,port))
         except socket.error:
             if nostart:
-                raise socket.error
+                raise
             else:
                 self.festival_pid = Popen(["festival", "--server"]).pid
                 atexit.register(self._kill_server)
@@ -118,7 +118,7 @@ class festival:
                     else:
                         break
                 else:
-                    raise socket.error
+                    raise
 
         self.sock = sock
         return sock
