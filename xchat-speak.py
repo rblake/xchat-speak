@@ -130,7 +130,7 @@ class festival:
 
 
 def unscramble_nick(speaker):
-    speakable_speaker = re.sub(r'^:(.*?)!.*', r'\1',speaker)
+    speakable_speaker = re.sub('^(?::|(?:\x03[0-9]{0,2}))(.*?)', r'\1',speaker)
     return speakable_speaker
 
 class xchat_speak:
