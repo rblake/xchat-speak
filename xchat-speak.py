@@ -147,7 +147,6 @@ class xchat_speak:
         self.actors = {
             "caleb" : "(voice_kal_diphone)",
             "ken" : "(voice_ked_diphone)",
-            "randal" : "(voice_rab_diphone)",
             "alan" : "(voice_cmu_us_awb_arctic_clunits)",
             "brett" : "(voice_cmu_us_bdl_arctic_clunits)",
             "carmen" : "(voice_cmu_us_clb_arctic_clunits)",
@@ -168,6 +167,7 @@ class xchat_speak:
         xchat.hook_command("unmute", self.unmute, help="/unmute [speaker] Turn on speech for this window or a specific speaker in this channel")
         xchat.hook_command("mute", self.mute, help="/mute [speaker] Turn off speech for this window, or mute a specific speaker in this channel")
         xchat.hook_command("pronounce", self.pronounce, help="'/pronounce word [pronunciation]' - Fix pronunciation for a word, or delete the pronunciation if it exists.")
+        xchat.hook_command("uncast", self.uncast, help="'/uncast nick' removes casting for an actor.")
         xchat.hook_command("cast", self.cast, help="'/cast nick [actor]' cast an actor as a particular nick, or clear that casting.")
         for message_event in ("Your Message","Channel Message","Channel Msg Hilight","Private Message","Private Message to Dialog"):
             xchat.hook_print(message_event, self.message_hook)
@@ -211,6 +211,18 @@ class xchat_speak:
         p = pickle.Unpickler(open(self.pickle_database(),"r"))
         self.spell = p.load()
         self.roles = p.load()
+        #go and redo any roles we know nothing about.
+        unknown_count=0;
+        for nick in self.roles.keys():
+            role = self.roles[nick]
+            if role not in self.actors.keys():
+                for actor in self.actors.keys():
+                    if self.actors[actor] == self.roles[nick]:
+                        self.roles[nick] = actor
+                        break
+                else:
+                    print "Unkown actor '"+role+"' for nick '"+nick+"'"
+                    del self.roles[nick]
 
     def pronounce(self, word, word_eol, userdata):
         "'/pronounce word [pronunciation]' - Fix pronunciation for a word, or delete the pronunciation if it exists."
@@ -259,22 +271,37 @@ class xchat_speak:
                 xchat.prnt('Silencing user '+speaker+' in all channels')
         return xchat.EAT_ALL
 
+    def uncast(self, word, word_eol, userdata):
+        "'/uncast nick' removes casting for an actor."
+        if len(word) == 2:
+            nick = word[1]
+            if self.roles.has_key(nick):
+                del self.roles[nick]
+            print "Clearing casting for nick"
+        return xchat.EAT_ALL
+
     def cast(self, word, word_eol, userdata):
         "'/cast nick [actor]' cast an actor as a particular nick, or clear that casting."
         if len(word) >= 2:
             nick = word[1]
             if len(word) == 2:
                 if self.roles.has_key(nick):
-                    del self.roles[nick]
-                print "Clearing casting of "+nick
+                    role = self.roles[nick]
+                    print "%16s  ==>  %s" % (nick,role)
+                else:
+                    print nick+" has no actor"
             else:
                 actor = word[2]
                 if self.actors.has_key(actor):
-                    self.roles[nick] = self.actors[actor]
+                    self.roles[nick] = actor
                     print "Casting "+nick+" as "+actor
                 else:
                     print "Unrecognized actor: "+actor
         else:
+            print "== Current castings: =="
+            for nick in self.roles.keys():
+                role = self.roles[nick]
+                print "%16s  ==>  %s" % (nick,role)
             print "== Valid actors: =="
             for actor in self.actors.keys():
                 print actor
@@ -287,7 +314,7 @@ class xchat_speak:
 
     def action_hook(self, word, word_eol, userdata):
         speaker = unscramble_nick(word[0])
-        message = word[0]+" "+word[1]
+        message = speaker+" "+word[1]
         return self.check_message(speaker, message)
 
     def check_message(self, speaker, message):
@@ -301,10 +328,14 @@ class xchat_speak:
              )):
             message = self.clean(message)
             
-            actor = self.actors["caleb"]
+            actor = "caleb"
             if self.roles.has_key(speaker):
-                actor = self.roles[speaker]
-            self.festival.say(message,actor)
+                possibleActor = self.roles[speaker]
+                if possibleActor not in self.actors.keys():
+                    del self.roles[speaker]
+                else:
+                    actor = possibleActor
+            self.festival.say(message,self.actors[actor])
         return xchat.EAT_NONE
 
 
